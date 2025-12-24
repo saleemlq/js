@@ -448,3 +448,16 @@ body.lq-panel-open{
     applyPanelState(!panel.classList.contains("closed"));
 })();
 
+document.addEventListener('keydown', function (e) {
+  if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
+
+  if (e.key === 'ArrowLeft') {
+    e.preventDefault();
+    document.querySelector('.fa-arrow-left')?.closest('form')?.submit();
+  }
+
+  if (e.key === 'ArrowRight') {
+    e.preventDefault();
+    document.querySelector('.fa-arrow-right')?.closest('form')?.submit();
+  }
+});
