@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         cl-ft
 // @namespace    violentmonkey
-// @version      2.8
+// @version      2.9
 // @match        https://my.learnquraan.co.uk/employees/teacher/lesson-step1*
 // @match        https://my.learnquraan.co.uk/employees/teacher/lesson-step2*
 // @grant        GM.addStyle
@@ -12,38 +12,37 @@
     "use strict";
     (document.head || document.documentElement).insertAdjacentHTML("beforeend", '<link href="https://fonts.googleapis.com/css2?family=Play:wght@400;600;800&display=swap" rel="stylesheet"><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">');
     const L = k => {
-            try {
-                return JSON.parse(localStorage.getItem(k) || "[]")
-            } catch {
-                return []
-            }
-        },
+        try {
+            const v = localStorage.getItem(k);
+            return v ? JSON.parse(v) : {};
+        } catch {
+            return {};
+        }
+    },
         S = (k, v) => localStorage.setItem(k, JSON.stringify(v));
-    const hid = new URLSearchParams(location.search).get("history_id") || document.querySelector('input[name="history1"]')?.value || "";
     let h = document.querySelector(".box-title")?.textContent.trim() || "",
         name = "";
     if (h) {
-    if (location.href.includes("lesson-step1")) {
-        name = h.match(/^(.+?)'s\s+Lesson Details$/)?.[1] || "";
-    } else if (location.href.includes("lesson-step2")) {
-        name = h.match(/^(.+?)'s\s+Additional Lesson Details$/)?.[1] || "";
+        if (location.href.includes("lesson-step1")) {
+            name = h.match(/^(.+?)'s\s+Lesson Details$/)?.[1] || "";
+        } else if (location.href.includes("lesson-step2")) {
+            name = h.match(/^(.+?)'s\s+Additional Lesson Details$/)?.[1] || "";
+        }
     }
-}
-    let students = L("listOfStudents"),
-        i = students.findIndex(x => x[hid]);
-    let pref = i > -1 ? students[i][hid] : {
+    const studentKey = name.trim().toLowerCase().replace(/\s+/g, " ");
+    if (!name) return;
+    let students = L("listOfStudents");
+    if (!students || typeof students !== "object" || Array.isArray(students)) {
+        students = {};
+    }
+
+    let pref = students[studentKey] || {
         name,
         panelOpen: false,
         feature: "performance"
     };
-    if (typeof pref === "string") pref = {
-        name: pref,
-        panelOpen: false,
-        feature: "performance"
-    };
-    i > -1 ? students[i][hid] = pref : students.push({
-        [hid]: pref
-    });
+
+    students[studentKey] = pref;
     S("listOfStudents", students);
     let feats = {};
     try {
@@ -51,7 +50,7 @@
     } catch {
         feats = {}
     };
-    feats[hid] = feats[hid] || {
+    feats[studentKey] = feats[studentKey] || {
         tasks: [],
         history: []
     };
@@ -63,10 +62,10 @@
     let cur;
     try {
         cur = JSON.parse(localStorage.getItem("currentClass"))
-    } catch {}
-    if (!cur || cur.history_id !== hid || cur.time !== R()) {
+    } catch { }
+    if (!cur || cur.student !== studentKey || cur.time !== R()) {
         cur = {
-            history_id: hid,
+            student: studentKey,
             time: R(),
             complements: {
                 p: Array(9).fill(0),
@@ -76,16 +75,16 @@
         localStorage.setItem("currentClass", JSON.stringify(cur));
     }
     const P = {
-            1: "Nice",
-            2: "Good",
-            3: "Cool",
-            4: "Great",
-            5: "Awesome",
-            6: "Amazing",
-            7: "Wow",
-            8: "Marvelous",
-            9: "Spectacular"
-        },
+        1: "Nice",
+        2: "Good",
+        3: "Cool",
+        4: "Great",
+        5: "Awesome",
+        6: "Amazing",
+        7: "Wow",
+        8: "Marvelous",
+        9: "Spectacular"
+    },
         N = {
             1: "Oh",
             2: "Oops",
@@ -120,9 +119,9 @@
             9: "#7f1d1d"
         };
     let c = {
-            p: {},
-            n: {}
-        },
+        p: {},
+        n: {}
+    },
         score = 50;
     for (let j = 1; j <= 9; j++) {
         c.p[j] = cur.complements.p[j - 1];
@@ -154,41 +153,41 @@ body.lq-panel-open{
 #toast{position:absolute;top:40px;left:50%;transform:translateX(-50%);display:flex;justify-content:center;pointer-events:none;z-index:10000}
 #toast::before{content:attr(data-text);padding:18px 50px;border-radius:28px;font-size:30px;font-weight:800;color:#fff;background:var(--bg);opacity:0;transform:translateY(-20px);transition:.4s}#toast.show::before{opacity:1;transform:none}#mini{position:fixed;top:10px;right:10px;width:34px;height:34px;border-radius:50%;background:#020617;color:#93c5fd;display:none;align-items:center;justify-content:center;cursor:pointer;z-index:9999;box-shadow:0 0 12px rgba(0,0,0,.6)}#featContent{height: 90%; margin-top:6px; display: flex; flex-direction: column;}.lq-task{background:#071025;border:1px solid #122032;border-radius:10px;padding:10px;display:flex;align-items:center;gap:10px;margin-bottom:6px}.lq-task span{flex:1;transition:color .35s linear}.lq-task input{flex:1;background:transparent;border:none;outline:none;color:#facc15}.lq-task i{cursor:pointer;opacity:.6}.lq-bars{flex:1;display:flex;align-items:flex-end;gap:4px;justify-content:center;overflow-x:auto;height:200px;position:relative;width:100%}.lq-bars .bar{width:12px;border-radius:3px;background:linear-gradient(180deg,#facc15,#f59e0b);display:inline-block;position:relative}.lq-bars .bar span{position:absolute;top:-18px;left:50%;transform:translateX(-50%) rotate(90deg);font-size:10px;color:#facc15;font-weight:700}.lq-labels{display:flex;gap:4px;margin-top:4px;justify-content:center;align-items:flex-start}.lq-labels div{writing-mode:vertical-rl; text-align:center;font-size:10px;color:#9ca3af;width:12px}.lq-stats{display:flex;flex-direction:column;gap:6px;margin-bottom:6px}.lq-meta{display:flex;justify-content:space-between;font-size:12px;color:#93c5fd;opacity:.9}.pswp{position:fixed!important;left:0!important;top:0!important;width:var(--pswp-width)!important;height:100vh!important;z-index:9998!important;transition:width .35s ease}.pswp__bg{width:var(--pswp-width)!important;background:rgba(2,6,23,0.92)!important}.pswp__scroll-wrap,.pswp__container,.pswp__item{width:var(--pswp-width)!important;transition:width .35s ease}.pswp__ui{right:auto!important}.pswp__button--fs{display:none!important}`);
 
-  const applyPanelState = open => {
-  document.body.classList.toggle("lq-panel-open", open);
-  document.documentElement.style.setProperty('--pswp-width', open ? '80vw' : '100vw');
-  // requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
-};
+    const applyPanelState = open => {
+        document.body.classList.toggle("lq-panel-open", open);
+        document.documentElement.style.setProperty('--pswp-width', open ? '80vw' : '100vw');
+        // requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
+    };
     const updatePSWPWidth = () => {
-    const open = !panel.classList.contains("closed");
-    document.documentElement.style.setProperty(
-        '--pswp-width',
-        open ? '80vw' : '100vw'
-    );
-    requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
-};
+        const open = !panel.classList.contains("closed");
+        document.documentElement.style.setProperty(
+            '--pswp-width',
+            open ? '80vw' : '100vw'
+        );
+        requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
+    };
     const open = () => {
-    if (!panel.classList.contains("closed")) return; // safety
-    panel.classList.remove("closed");
-    mini.style.display = "none";
-    pref.panelOpen = true;
-    S("listOfStudents", students);
-    applyPanelState(true);
-};
+        if (!panel.classList.contains("closed")) return; // safety
+        panel.classList.remove("closed");
+        mini.style.display = "none";
+        pref.panelOpen = true;
+        S("listOfStudents", students);
+        applyPanelState(true);
+    };
 
-const close = () => {
-    if (panel.classList.contains("closed")) return; // safety
-    panel.classList.add("closed");
-    mini.style.display = "flex";
-    pref.panelOpen = false;
-    S("listOfStudents", students);
-    applyPanelState(false);
-};
+    const close = () => {
+        if (panel.classList.contains("closed")) return; // safety
+        panel.classList.add("closed");
+        mini.style.display = "flex";
+        pref.panelOpen = false;
+        S("listOfStudents", students);
+        applyPanelState(false);
+    };
     panel.querySelector("#close").onclick = close;
     mini.onclick = open;
 
     const show = (t, c, chg) => {
-        toast.dataset.text = `${t} ${chg>0?"+":"-"}${Math.abs(chg)}`;
+        toast.dataset.text = `${t} ${chg > 0 ? "+" : "-"}${Math.abs(chg)}`;
         toast.style.setProperty("--bg", `linear-gradient(135deg,${c},#000a)`);
         toast.classList.add("show");
         setTimeout(() => toast.classList.remove("show"), 1600);
@@ -236,11 +235,7 @@ const close = () => {
         }
     };
     const pushOrUpdateHistory = () => {
-        feats[hid] = feats[hid] || {
-            tasks: [],
-            history: []
-        };
-        const hlist = feats[hid].history;
+        const hlist = feats[studentKey].history;
         const last = hlist.slice(-1)[0];
         if (!last || last.time !== cur.time) hlist.push({
             time: cur.time,
@@ -249,7 +244,7 @@ const close = () => {
         else last.score = score;
 
         // Keep only last 10 entries
-        feats[hid].history = hlist.slice(-10);
+        feats[studentKey].history = hlist.slice(-10);
 
         S("lq_features", feats);
     };
@@ -322,7 +317,7 @@ const close = () => {
     const renderTasks = () => {
         const cont = panel.querySelector("#featContent");
         cont.innerHTML = "";
-        (feats[hid].tasks || []).forEach((t, idx) => {
+        (feats[studentKey].tasks || []).forEach((t, idx) => {
             const r = document.createElement("div");
             r.className = "lq-task";
             const ok = document.createElement("i");
@@ -335,7 +330,7 @@ const close = () => {
             ok.onclick = () => {
                 r.style.opacity = 0;
                 setTimeout(() => {
-                    feats[hid].tasks.splice(idx, 1);
+                    feats[studentKey].tasks.splice(idx, 1);
                     S("lq_features", feats);
                     renderTasks()
                 }, 300)
@@ -354,7 +349,7 @@ const close = () => {
         inp.placeholder = "Add task and press Enter";
         inp.onkeydown = e => {
             if (e.key === "Enter" && inp.value.trim()) {
-                feats[hid].tasks.push({
+                feats[studentKey].tasks.push({
                     text: inp.value.trim(),
                     bad: 1
                 });
@@ -368,7 +363,7 @@ const close = () => {
     const renderResults = () => {
         const cont = panel.querySelector("#featContent");
         cont.innerHTML = "";
-        const hist = (feats[hid].history || []).slice(-10);
+        const hist = (feats[studentKey].history || []).slice(-10);
         if (!hist.length) {
             cont.textContent = "No history yet for this student.";
             return;
@@ -452,3 +447,4 @@ const close = () => {
     }
     applyPanelState(!panel.classList.contains("closed"));
 })();
+
