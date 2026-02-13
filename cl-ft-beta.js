@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name         cl-ft
+// @name         cl-ft-beta
 // @namespace    violentmonkey
 // @version      2.9
 // @match        https://my.learnquraan.co.uk/employees/teacher/lesson-step1*
