@@ -1,0 +1,73 @@
+// ==UserScript==
+// @name         LMS Career Grand Stats Auto-Counter
+// @namespace    http://tampermonkey.net/
+// @version      6.0
+// @description  Automatically fetches and displays total classes and grand total pay from 2014-2026.
+// @author       Gemini
+// @match        https://emp.learnquraan.co.uk/employees/teacher/salary_record.php*
+// @grant        none
+// ==/UserScript==
+
+(function() {
+    'use strict';
+
+    window.addEventListener('load', async function() {
+        const titleArea = document.querySelector('.card-body .d-flex');
+        if (!titleArea) return;
+
+        const statsDisplay = document.createElement('div');
+        statsDisplay.style.marginLeft = '15px';
+        statsDisplay.innerHTML = '<span class="badge badge-light-primary fs-7 fw-bold">🚀 Calculating Career Grand Totals...</span>';
+        titleArea.appendChild(statsDisplay);
+
+        const startYear = 2014;
+        const endYear = 2026; 
+        const baseUrl = 'https://emp.learnquraan.co.uk/employees/teacher/salary_record.php?year=';
+        
+        let grandTotalClasses = 0;
+        let grandCareerPay = 0;
+
+        try {
+            for (let year = startYear; year <= endYear; year++) {
+                if (year > 2014 && year < 2018) continue; // Skip years missing in dropdown
+
+                const response = await fetch(baseUrl + year);
+                if (!response.ok) continue;
+
+                const html = await response.text();
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                const rows = doc.querySelectorAll('table tbody tr');
+
+                rows.forEach(row => {
+                    // Classes column is index 4
+                    const classCell = row.cells[4];
+                    // Grand Total column is index 15
+                    const grandCell = row.cells[15];
+
+                    if (classCell) {
+                        const count = parseInt(classCell.innerText.replace(/,/g, ''));
+                        if (!isNaN(count)) grandTotalClasses += count;
+                    }
+                    if (grandCell) {
+                        const amount = parseFloat(grandCell.innerText.replace(/,/g, ''));
+                        if (!isNaN(amount)) grandCareerPay += amount;
+                    }
+                });
+            }
+
+            statsDisplay.innerHTML = `
+                <span class="badge badge-primary fs-7 fw-bold" style="background-color: #0095E8; margin-right: 5px;">
+                    Total Classes: ${grandTotalClasses.toLocaleString()}
+                </span>
+                <span class="badge badge-success fs-7 fw-bold" style="background-color: #50CD89;">
+                    Grand Career Pay: ${grandCareerPay.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0})}
+                </span>
+            `;
+
+        } catch (error) {
+            console.error("Error fetching career records:", error);
+            statsDisplay.innerHTML = '<span class="badge badge-light-danger fs-7">Error loading data</span>';
+        }
+    }, false);
+})();
